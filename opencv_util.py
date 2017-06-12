@@ -59,7 +59,7 @@ class FindObj:
         kp2, desc2 = detector.detectAndCompute(self._regionImg, None)
         raw_matches = matcher.knnMatch(desc1, trainDescriptors = desc2, k = 2) #2
         p1, p2, kp_pairs = self._filter_matches(kp1, kp2, raw_matches)
-        if len(p1) >= 4:#computing a matrix nees 4 matched points at least 
+        if len(p1) >= 4:#computing a matrix nees 4 matched points at least
             H, status = cv2.findHomography(p1, p2, cv2.RANSAC, 5.0)
             return ('%d / %d' % (np.sum(status), len(status)))
         else:
@@ -68,51 +68,55 @@ class FindObj:
 
     def _findMiddlePoint(self,detector):
         if self._targetImg is None or self._regionImg is None:
-            return None,None,status
+            return None,None,None
         matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
         kp1, desc1 = detector.detectAndCompute(self._targetImg, None)
         kp2, desc2 = detector.detectAndCompute(self._regionImg, None)
         raw_matches = matcher.knnMatch(desc1, trainDescriptors = desc2, k = 2) #2
         p1, p2, kp_pairs = self._filter_matches(kp1, kp2, raw_matches)
-        if len(p1) >= 4:#computing a matrix nees 4 matched points at least 
-            H, status = cv2.findHomography(p1, p2, cv2.RANSAC, 5.0)
-            middlePoint=self._explore(kp_pairs, status, H),status
-            #验证中心点坐标两个宽高的范围内，模板匹配的结果
-            #剪切出模板匹配的目标范围图像searchRange
-            h1, w1 = self._targetImg.shape[:2]
-            h2, w2 = self._regionImg.shape[:2]
-            zoom_region=float(self._originalWidth)/float(w1)
-            regionImgZoomed=cv2.resize(self._regionImg,(self._originalWidth,h2*zoom_region),cv2.INTER_CUBIC)
+        if len(p1) >= 4:#computing a matrix nees 4 matched points at least
+            if self._originalWidth is not None:
+                H, status = cv2.findHomography(p1, p2, cv2.RANSAC, 5.0)
+                middlePoint=self._explore(kp_pairs, status, H),status
+                #验证中心点坐标两个宽高的范围内，模板匹配的结果
+                #剪切出模板匹配的目标范围图像searchRange
+                h1, w1 = self._targetImg.shape[:2]
+                h2, w2 = self._regionImg.shape[:2]
+                zoom_region=float(self._originalWidth)/float(w1)
+                regionImgZoomed=cv2.resize(self._regionImg,(self._originalWidth,h2*zoom_region),cv2.INTER_CUBIC)
 
-            x_left=middlePoint[0]*zoom_region-w1
-            x_right=middlePoint[0]*zoom_region+w1
-            y_top=middlePoint[1]*zoom_region-h1
-            y_bottom=middlePoint[1]*zoom_region+h1
-            searchRange=regionImgZoomed[y_top:(y_bottom-y_top), x_left:(x_right-x_left)];
+                x_left=middlePoint[0]*zoom_region-w1
+                x_right=middlePoint[0]*zoom_region+w1
+                y_top=middlePoint[1]*zoom_region-h1
+                y_bottom=middlePoint[1]*zoom_region+h1
+                searchRange=regionImgZoomed[y_top:(y_bottom-y_top), x_left:(x_right-x_left)];
 
-            #锐化
-            sharpenedSR=np.zeros(searchRange.shape, np.uint8)
-            kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-            sharpenedSR = cv2.filter2D(searchRange, -1, kernel)
-            #中值滤波，降噪
-            sharpenedSR=cv2.medianBlur(sharpenedSR,5)
+                if w2<self._originalWidth：
+                    #锐化
+                    sharpenedSR=np.zeros(searchRange.shape, np.uint8)
+                    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+                    sharpenedSR = cv2.filter2D(searchRange, -1, kernel)
+                    #中值滤波，降噪
+                    sharpenedSR=cv2.medianBlur(sharpenedSR,5)
 
-            method = eval('cv2.TM_CCOEFF_NORMED')  
+                method = eval('cv2.TM_CCOEFF_NORMED')
 
-            res = cv2.matchTemplate(sharpenedSR,self._targetImg,method)  
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)  
+                res = cv2.matchTemplate(sharpenedSR,self._targetImg,method)
+                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
-            #top_left = max_loc  
-            #bottom_right = (top_left[0] + w1, top_left[1] + h1)
+                #top_left = max_loc
+                #bottom_right = (top_left[0] + w1, top_left[1] + h1)
 
-            if max_val > self._ratio
-                return middlePoint
-            else 
-                return [None,None]
+                if max_val > self._ratio
+                    return middlePoint
+                else:
+                    [None,None，None]
+            else
+                return [None,None，None]
         else:
             H, status = None, None
             #if we cannot get the middle point, so long as there is one matched point,return it as middle point
-            return (None,None),None
+            return None,None,None
 
     def _filter_matches(self, kp1, kp2, matches):
         mkp1, mkp2 = [], []
@@ -177,4 +181,3 @@ class region:
 
     def height(self):
         return self.__height;
-

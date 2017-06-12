@@ -4,10 +4,10 @@ import numpy as np
 import time
 from appium.webdriver.common.touch_action import TouchAction
 
-rate = 0.25
+rate = 0.1
 def region(x, y, width, height):#像素点区域
     return ou.region(x, y, width, height)
-    
+
 def regionP(driver,x, y, width, height):#百分比区域
     sWidth=driver.get_window_size()['width'];
     sHeight=driver.get_window_size()['height'];
@@ -57,4 +57,3 @@ def _get_element_middle_point(driver, img, originalWidth, region):
     findElementObj=ou.FindObj(img, screenShotFileName, originalWidth, region)
     tapPoint=findElementObj.findMiddlePointByBrisk()
     return tapPoint
-
