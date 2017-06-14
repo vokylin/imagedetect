@@ -26,7 +26,6 @@ def tap_element_by_image(driver, img,reference ,originalWidth=None, region=None)
                 return True
             else:
                 return False
-            return True;
         else:
             return True
     else:
@@ -45,7 +44,6 @@ def is_element_present_by_image(driver, img,reference ,originalWidth=None, regio
                 return True
             else:
                 return False
-            return True;
         else:
             return True
     else:
@@ -63,11 +61,11 @@ def _get_element_middle_point(driver, img, originalWidth, region):
     else:#picture path is null
         screenShotFileName=str(time.time())+'-'+img[0:i]+'.png'
     driver.get_screenshot_as_file(screenShotFileName)
-    print('**')
-    print(img)
-    print(screenShotFileName)
-    print(originalWidth)
-    print('**')
+#    print('**')
+#    print(img)
+#    print(screenShotFileName)
+#    print(originalWidth)
+#    print('**')
     findElementObj=ou.FindObj(img, screenShotFileName, originalWidth, region)
     tapPoint=findElementObj.findMiddlePointByBrisk()
     return tapPoint
