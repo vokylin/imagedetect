@@ -25,22 +25,23 @@ class FindObj:
             if(not self._region.width()):
                 self._region.setWidth(tempW)
             self._regionImg=regionTempImg[self._region.y():(self._region.height()+self._region.y()), self._region.x():(self._region.width()+self._region.x())];
+        self._originalWidth = originalWidth
 
     def findMiddlePointByAkaze(self):
         detector = cv2.AKAZE_create()
-        regionX,regionY = self._findMiddlePoint(detector)
-        if(self._region is not None and regionX is not None and regionY is not None):
-            return [regionX + self._region.x(), regionY + self._region.y()];
-        else:
-            return [regionX,regionY]
-
-    def findMiddlePointByBrisk(self):
-        detector = cv2.BRISK_create()
-        (regionX,regionY),status = self._findMiddlePoint(detector)
+        [regionX,regionY],status = self._findMiddlePoint(detector)
         if(self._region is not None and regionX is not None and regionY is not None):
             return [regionX + self._region.x(), regionY + self._region.y(),status];
         else:
             return [regionX,regionY,status]
+
+    def findMiddlePointByBrisk(self):
+        detector = cv2.BRISK_create()
+        [regionX,regionY],status,max_val = self._findMiddlePoint(detector)
+        if(self._region is not None and regionX is not None and regionY is not None):
+            return [regionX + self._region.x(), regionY + self._region.y(),status,max_val];
+        else:
+            return [regionX,regionY,status,max_val]
 
     def findMiddlePointByOrb(self):
         detector = cv2.ORB_create(400)
@@ -68,37 +69,60 @@ class FindObj:
 
     def _findMiddlePoint(self,detector):
         if self._targetImg is None or self._regionImg is None:
-            return None,None,None
+            return [None,None],None
         matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
         kp1, desc1 = detector.detectAndCompute(self._targetImg, None)
         kp2, desc2 = detector.detectAndCompute(self._regionImg, None)
         raw_matches = matcher.knnMatch(desc1, trainDescriptors = desc2, k = 2) #2
         p1, p2, kp_pairs = self._filter_matches(kp1, kp2, raw_matches)
         if len(p1) >= 4:#computing a matrix nees 4 matched points at least
+            print('this.originNal Widt')
+            print(self._originalWidth)
             if self._originalWidth is not None:
                 H, status = cv2.findHomography(p1, p2, cv2.RANSAC, 5.0)
-                middlePoint=self._explore(kp_pairs, status, H),status
+                middlePoint=self._explore(kp_pairs, status, H)
                 #验证中心点坐标两个宽高的范围内，模板匹配的结果
                 #剪切出模板匹配的目标范围图像searchRange
                 h1, w1 = self._targetImg.shape[:2]
                 h2, w2 = self._regionImg.shape[:2]
-                zoom_region=float(self._originalWidth)/float(w1)
-                regionImgZoomed=cv2.resize(self._regionImg,(self._originalWidth,h2*zoom_region),cv2.INTER_CUBIC)
-
+                zoom_region=float(self._originalWidth)/float(w2)
+                regionImgZoomed=cv2.resize(self._regionImg,(self._originalWidth,int(h2*zoom_region)),cv2.INTER_CUBIC)
+                print('@@ hw @@&')
+                print(h1)
+                print(w1)
+                print(h2)
+                print(w2)
+                print(zoom_region)
+                print('&@@@@')
                 x_left=middlePoint[0]*zoom_region-w1
                 x_right=middlePoint[0]*zoom_region+w1
                 y_top=middlePoint[1]*zoom_region-h1
                 y_bottom=middlePoint[1]*zoom_region+h1
-                searchRange=regionImgZoomed[y_top:(y_bottom-y_top), x_left:(x_right-x_left)];
+                if x_left<0:
+                    x_left=0
+                    x_right=w2
+                if y_top<0:
+                    y_top=0
+                    y_bottom=h2
+                print('&& lrtb &&')
+                print(middlePoint)
+                print(x_left)
+                print(x_right)
+                print(y_top)
+                print(y_bottom)
+                print('&&&&')
+                searchRange=regionImgZoomed[y_top:y_bottom, x_left:x_right];
+                cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',searchRange)
 
-                if w2<self._originalWidth：
+                if w2<self._originalWidth:
                     #锐化
                     sharpenedSR=np.zeros(searchRange.shape, np.uint8)
                     kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
                     sharpenedSR = cv2.filter2D(searchRange, -1, kernel)
                     #中值滤波，降噪
                     sharpenedSR=cv2.medianBlur(sharpenedSR,5)
-
+                else:
+                    sharpenedSR=searchRange.copy()
                 method = eval('cv2.TM_CCOEFF_NORMED')
 
                 res = cv2.matchTemplate(sharpenedSR,self._targetImg,method)
@@ -107,16 +131,19 @@ class FindObj:
                 #top_left = max_loc
                 #bottom_right = (top_left[0] + w1, top_left[1] + h1)
 
-                if max_val > self._ratio
-                    return middlePoint
+                if max_val > self._ratio:
+                    return middlePoint,status,max_val
                 else:
-                    [None,None，None]
-            else
-                return [None,None，None]
+                    print('in fall max_val')
+                    return middlePoint,status,max_val
+            else:
+                print('in fall no_Orignal')
+                return middlePoint,status,max_val
         else:
             H, status = None, None
             #if we cannot get the middle point, so long as there is one matched point,return it as middle point
-            return None,None,None
+            print('in fall tezheng < 4')
+            return [None,None],None,None
 
     def _filter_matches(self, kp1, kp2, matches):
         mkp1, mkp2 = [], []
