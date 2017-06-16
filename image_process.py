@@ -4,7 +4,7 @@ import numpy as np
 import time
 from appium.webdriver.common.touch_action import TouchAction
 ratio = 0.75
-rate = 0.2
+rate = 0.1
 def region(x, y, width, height):#像素点区域
     return ou.region(x, y, width, height)
 
@@ -27,15 +27,28 @@ def tap_element_by_image(driver, img,reference ,originalWidth=None, region=None)
             else:
                 return False
         else:
+            TouchAction(driver).press(x=int(tapPoint[0]),y=int(tapPoint[1])).release().perform()
             return True
     else:
-        return False;
+        if status is not None:
+            target = 1-float(abs(reference[0]-np.sum(status)))/float(reference[0])
+            base = 1-float(abs(reference[1]-len(status)))/float(reference[1])
+            if(target >= rate and base >= rate):
+                TouchAction(driver).press(x=int(tapPoint[0]),y=int(tapPoint[1])).release().perform()
+                return True
+            else:
+                return False
+        else:
+            return False;
 
 def is_element_present_by_image(driver, img,reference ,originalWidth=None, region=None):
     tapPoint=_get_element_middle_point(driver, img,originalWidth, region)
     status = tapPoint[2]
     max_val = tapPoint[3]#max_val xiangsizhi
-    print('max_val:%f'%(max_val))
+    if max_val and np.sum(status) and len(status):
+        print('max_val:%f'%(max_val))
+        print(np.sum(status))
+        print(len(status))
     if(tapPoint[0] is not None and tapPoint[1] is not None):
         if(max_val<ratio):
             target = 1-float(abs(reference[0]-np.sum(status)))/float(reference[0])
@@ -47,7 +60,15 @@ def is_element_present_by_image(driver, img,reference ,originalWidth=None, regio
         else:
             return True
     else:
-        return False;
+        if status is not None:
+            target = 1-float(abs(reference[0]-np.sum(status)))/float(reference[0])
+            base = 1-float(abs(reference[1]-len(status)))/float(reference[1])
+            if(target >= rate and base >= rate):
+                return True
+            else:
+                return False
+        else:
+            return False;
 
 def get_feature_number_by_image(img1,img2, originalWidth=None, region=None):
     findElementObj=ou.FindObj(img1, img2,originalWidth, region)
@@ -61,11 +82,11 @@ def _get_element_middle_point(driver, img, originalWidth, region):
     else:#picture path is null
         screenShotFileName=str(time.time())+'-'+img[0:i]+'.png'
     driver.get_screenshot_as_file(screenShotFileName)
-#    print('**')
-#    print(img)
-#    print(screenShotFileName)
-#    print(originalWidth)
-#    print('**')
+    print('**')
+    print(img)
+    print(screenShotFileName)
+    print(originalWidth)
+    print('**')
     findElementObj=ou.FindObj(img, screenShotFileName, originalWidth, region)
     tapPoint=findElementObj.findMiddlePointByBrisk()
     return tapPoint
