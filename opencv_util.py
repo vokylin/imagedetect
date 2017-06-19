@@ -27,7 +27,7 @@ class FindObj:
             print('jiequ hou de zuobiao')
             print(self._region.y(),(self._region.height()+self._region.y()), self._region.x(),(self._region.width()+self._region.x()))
             self._regionImg=regionTempImg[self._region.y():(self._region.height()+self._region.y()), self._region.x():(self._region.width()+self._region.x())];
-#jiequ hou de tupian            cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',self._regionImg)
+#截取后的图片            cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',self._regionImg)
         self._originalWidth = originalWidth
 
     def findMiddlePointByAkaze(self):
@@ -91,7 +91,7 @@ class FindObj:
                 h2, w2 = self._regionImg.shape[:2]
 #middlePoint[0]----width   middlePoint[1]----height
                 if(middlePoint[0] is not None and middlePoint[1] is not None and middlePoint[0]<w2 and middlePoint[1]<h2):
-                #baozheng zhongxin dian zai quyu nei
+                    #保证中心点在区域范围内
                     #验证中心点坐标两个宽高的范围内，模板匹配的结果
                     #剪切出模板匹配的目标范围图像searchRange
                     zoom_region=float(self._originalWidth)/float(w2)
