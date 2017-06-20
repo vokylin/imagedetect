@@ -3,32 +3,62 @@
 
 import numpy as np
 import cv2
+import math
 
 class FindObj:
     _targetImg = ""#要找的目标图片
     _regionImg = ""#被搜索的大图
-    _originalWidth=None#截图时，原始大图的宽度
+    _original=None#截图时，原始图片的宽高[width,height]
     _region=None
     _ratio=0.75
+    _zoom_region=1.0#缩放比率
 
-    def __init__(self, targetImg, regionImg, originalWidth,region):
+    def __init__(self, targetImg, regionImg, original,region):
         self._region=region
-        if self._region is None:
-            self._targetImg = cv2.imread(targetImg, 0)
-            self._regionImg = cv2.imread(regionImg, 0)
-        else:
-            self._targetImg = cv2.imread(targetImg, 0)
-            regionTempImg = cv2.imread(regionImg, 0)
-            tempH, tempW=regionTempImg.shape[:2]
+        self._original = original
+        self._targetImg = cv2.imread(targetImg, 0)
+        self._regionImg = cv2.imread(regionImg, 0)
+        tempH, tempW=self._regionImg.shape[:2]#缩放前的被搜索图片
+        self._zoom_region=float(self._original[0])/float(tempW)#获得缩放比率
+
+        #检查是否横屏，对屏幕进行旋转
+        if (self._original[0]<self._original[1]) ^ (tempW<tempH):
+            self._regionImg = self.rotate_about_center(self._regionImg,90)
+
+        if self._zoom_region != 1:
+            #如果和原图不一致
+            self._regionImg=cv2.resize(self._regionImg,(int(tempW*self._zoom_region),int(tempH*self._zoom_region)),cv2.INTER_CUBIC)
+            #对reginImg进行缩放
+
+        if self._region is not None:
             if(not self._region.height()):
+                self._region.setX(0)
                 self._region.setHeight(tempH)
             if(not self._region.width()):
+                self._region.setY(0)
                 self._region.setWidth(tempW)
-            print('jiequ hou de zuobiao')
+            #检查区域是否有意义，如果没有则默认为全屏
+            print('截取后的坐标')
             print(self._region.y(),(self._region.height()+self._region.y()), self._region.x(),(self._region.width()+self._region.x()))
-            self._regionImg=regionTempImg[self._region.y():(self._region.height()+self._region.y()), self._region.x():(self._region.width()+self._region.x())];
-#jiequ hou de tupian            cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',self._regionImg)
-        self._originalWidth = originalWidth
+            self._regionImg=self._regionImg[self._region.y():(self._region.height()+self._region.y()), self._region.x():(self._region.width()+self._region.x())];
+            #按照比例，截取后的图片  cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',self._regionImg)
+
+    def rotate_about_center(src, angle, scale=1.0):
+        #中心旋转
+        w = src.shape[1]
+        h = src.shape[0]
+        rangle = np.deg2rad(angle)
+
+        nw = (abs(np.sin(rangle)*h) + abs(np.cos(rangle)*w))*scale
+        nh = (abs(np.cos(rangle)*h) + abs(np.sin(rangle)*w))*scale
+
+        rot_mat = cv2.getRotationMatrix2D((nw*0.5, nh*0.5), angle, scale)
+
+        rot_move = np.dot(rot_mat, np.array([(nw-w)*0.5, (nh-h)*0.5,0]))
+
+        rot_mat[0,2] += rot_move[0]
+        rot_mat[1,2] += rot_move[1]
+        return cv2.warpAffine(src, rot_mat, (int(math.ceil(nw)), int(math.ceil(nh))), flags=cv2.INTER_LANCZOS4)
 
     def findMiddlePointByAkaze(self):
         detector = cv2.AKAZE_create()
@@ -41,10 +71,11 @@ class FindObj:
     def findMiddlePointByBrisk(self):
         detector = cv2.BRISK_create()
         [regionX,regionY],status,max_val = self._findMiddlePoint(detector)
+        #返回中心点坐标。但是图片存在缩放的可能,需要self._zoom_region来修正
         if(self._region is not None and regionX is not None and regionY is not None):
-            return [regionX + self._region.x(), regionY + self._region.y(),status,max_val];
+            return [float(regionX + self._region.x())/self._zoom_region, float(regionY + self._region.y())/self._zoom_region,status,max_val];
         else:
-            return [regionX,regionY,status,max_val]
+            return [float(regionX)/self._zoom_region,float(regionY)/self._zoom_region,status,max_val]
 
     def findMiddlePointByOrb(self):
         detector = cv2.ORB_create(400)
@@ -72,52 +103,61 @@ class FindObj:
 
     def _findMiddlePoint(self,detector):
         if self._targetImg is None or self._regionImg is None:
+            #是否存在相应的图片
             print('in fall wrong target Img or retionImg')
             print(self._targetImg)
-            print(self._reginImg)
+            print(self._regionImg)
             return [None,None],None,None
         matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
         kp1, desc1 = detector.detectAndCompute(self._targetImg, None)
         kp2, desc2 = detector.detectAndCompute(self._regionImg, None)
         raw_matches = matcher.knnMatch(desc1, trainDescriptors = desc2, k = 2) #2
         p1, p2, kp_pairs = self._filter_matches(kp1, kp2, raw_matches)
-        if len(p1) >= 4:#computing a matrix nees 4 matched points at least
+        if len(p1) >= 4:#computing a matrix needs 4 matched points at least
  #           print('this.originNal Widt')
  #           print(self._originalWidth)
-            if self._originalWidth is not None:
+            if self._original is not None:
+                #判断原始图片是否为空：判断是否为之前的脚本
+  #              cv2.imwrite('/usr/lib/python2.7/site-packages/midori.png',self._regionImg)
+ #               cv2.imwrite('/usr/lib/python2.7/site-packages/midtar.png',self._targetImg)
                 H, status = cv2.findHomography(p1, p2, cv2.RANSAC, 5.0)
                 middlePoint=self._explore(kp_pairs, status, H)
                 h1, w1 = self._targetImg.shape[:2]
                 h2, w2 = self._regionImg.shape[:2]
-#middlePoint[0]----width   middlePoint[1]----height
-                if(middlePoint[0] is not None and middlePoint[1] is not None and middlePoint[0]<w2 and middlePoint[1]<h2):
-                #baozheng zhongxin dian zai quyu nei
+                #此时reginImg为经过缩放处理后图片
+#middlePoint[0]----x   middlePoint[1]----y
+                if(middlePoint[0] is not None and middlePoint[0] > 0 and middlePoint[0]<w2 and middlePoint[1] is not None and middlePoint[1] >0 and middlePoint[1]<h2):
+                    #判断中心点在所选区域内
                     #验证中心点坐标两个宽高的范围内，模板匹配的结果
                     #剪切出模板匹配的目标范围图像searchRange
-                    zoom_region=float(self._originalWidth)/float(w2)
-                    regionImgZoomed=cv2.resize(self._regionImg,(self._originalWidth,int(h2*zoom_region)),cv2.INTER_CUBIC)
+
+                    #regionImgZoomed=cv2.resize(self._regionImg,(int(w2*self._zoom_region),int(h2*self._zoom_region)),cv2.INTER_CUBIC)
                     print('@@ hw @@&')
                     print(h1)
                     print(w1)
                     print(h2)
                     print(w2)
-                    print(zoom_region)
+                    print(self._zoom_region)
                     print(middlePoint)
                     print('&@@@@')
-                    x_left=middlePoint[0]*zoom_region-w1
-                    x_right=middlePoint[0]*zoom_region+w1
-                    y_top=middlePoint[1]*zoom_region-h1
-                    y_bottom=middlePoint[1]*zoom_region+h1
+                    x_left=middlePoint[0]-w1
+                    x_right=middlePoint[0]+w1
+                    y_top=middlePoint[1]-h1
+                    y_bottom=middlePoint[1]+h1
+                    #判断，如果目标图片所在的区域超过了截图区域，则需要修正，保证目标图片存在于区域内部
                     if x_left<0:
                         x_left=0
+                    if x_right>w2:
                         x_right=w2
                     if y_top<0:
                         y_top=0
-                        y_bottom=h2
+                    if y_bottom > h2:
+                        y_bottom = h2
                     searchRange=regionImgZoomed[y_top:y_bottom, x_left:x_right];
-#                    cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',self._regionImg)
-    
-                    if w2<self._originalWidth:
+#                        cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',self._regionImg)
+
+                    if self.zoom_region>1:
+                        #如果运行时候的图片是经过放大，则需要进行锐化操作
                         #锐化
                         sharpenedSR=np.zeros(searchRange.shape, np.uint8)
                         kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
@@ -127,13 +167,13 @@ class FindObj:
                     else:
                         sharpenedSR=searchRange.copy()
                     method = eval('cv2.TM_CCOEFF_NORMED')
-                    #orgi,targetImg
+                    #搜索区域,目标对象
                     cv2.imwrite('/usr/lib/python2.7/site-packages/ori.png',sharpenedSR)
                     cv2.imwrite('/usr/lib/python2.7/site-packages/tar.png',self._targetImg)
 
                     res = cv2.matchTemplate(sharpenedSR,self._targetImg,method)
                     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-    
+
                     #top_left = max_loc
                     #bottom_right = (top_left[0] + w1, top_left[1] + h1)
                     print('&& lrtb &&')
@@ -145,11 +185,14 @@ class FindObj:
                     print(max_val)
                     print('&&&&')
                     if max_val > self._ratio:
+                        #大于相似度，返回中心点以及各参数
                         return middlePoint,status,max_val
                     else:
+                        #小于相似度
                         print('in fall max_val')
                         return middlePoint,status,max_val
                 else:
+                    #没有中心点，则只能检测是否存在（比较弱的检测，准确度需要控制，通过特征点的多少），无法进行点击
                     print('in fall no_middle')
                     print(middlePoint)
                     print(status)
@@ -158,6 +201,7 @@ class FindObj:
                 print('in fall no_Orignal')
                 return [None,None],None,None
         else:
+            #特征点数不够
             H, status = None, None
             #if we cannot get the middle point, so long as there is one matched point,return it as middle point
             print('in fall tezheng < 4')

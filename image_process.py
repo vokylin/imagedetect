@@ -13,15 +13,15 @@ def regionP(driver,x, y, width, height):#百分比区域
     sHeight=driver.get_window_size()['height'];
     return ou.region(x*sWidth, y*sHeight, width*sWidth, height*sHeight)
 
-def tap_element_by_image(driver, img,reference ,originalWidth=None, region=None):
-    tapPoint=_get_element_middle_point(driver, img, originalWidth,region)
+def tap_element_by_image(driver, img,reference ,original=None, region=None):
+    tapPoint=_get_element_middle_point(driver, img, original,region)
     status = tapPoint[2]
-    max_val = tapPoint[3]#max_val xiangsizhi
+    max_val = tapPoint[3]#max_val 模板匹配相似值
     if(tapPoint[0] is not None and tapPoint[1] is not None):
-        if(max_val<ratio):#jinru xiangsi du
+        if(max_val<ratio):#检查相似度，模板匹配小于75，则进行特征点匹配，存在中心点，可以点击
             target = 1-float(abs(reference[0]-np.sum(status)))/float(reference[0])
             base = 1-float(abs(reference[1]-len(status)))/float(reference[1])
-            if(target >= rate and base >= rate):
+            if(target >= rate and base >= rate):#检查特征点是否能大于相似度
                 TouchAction(driver).press(x=int(tapPoint[0]),y=int(tapPoint[1])).release().perform()
                 return True
             else:
@@ -30,21 +30,13 @@ def tap_element_by_image(driver, img,reference ,originalWidth=None, region=None)
             TouchAction(driver).press(x=int(tapPoint[0]),y=int(tapPoint[1])).release().perform()
             return True
     else:
-        if status is not None:
-            target = 1-float(abs(reference[0]-np.sum(status)))/float(reference[0])
-            base = 1-float(abs(reference[1]-len(status)))/float(reference[1])
-            if(target >= rate and base >= rate):
-                TouchAction(driver).press(x=int(tapPoint[0]),y=int(tapPoint[1])).release().perform()
-                return True
-            else:
-                return False
-        else:
-            return False;
+        #如果没有中心点。无论如何不允许点击
+        return False;
 
-def is_element_present_by_image(driver, img,reference ,originalWidth=None, region=None):
-    tapPoint=_get_element_middle_point(driver, img,originalWidth, region)
+def is_element_present_by_image(driver, img,reference ,original=None, region=None):
+    tapPoint=_get_element_middle_point(driver, img,original, region)
     status = tapPoint[2]
-    max_val = tapPoint[3]#max_val xiangsizhi
+    max_val = tapPoint[3]
     if max_val and np.sum(status) and len(status):
         print('max_val:%f'%(max_val))
         print(np.sum(status))
@@ -61,6 +53,7 @@ def is_element_present_by_image(driver, img,reference ,originalWidth=None, regio
             return True
     else:
         if status is not None:
+            #存在没有中心点，但是依旧可以用特征点的相似度来确定是否存在匹配
             target = 1-float(abs(reference[0]-np.sum(status)))/float(reference[0])
             base = 1-float(abs(reference[1]-len(status)))/float(reference[1])
             if(target >= rate and base >= rate):
@@ -70,11 +63,11 @@ def is_element_present_by_image(driver, img,reference ,originalWidth=None, regio
         else:
             return False;
 
-def get_feature_number_by_image(img1,img2, originalWidth=None, region=None):
-    findElementObj=ou.FindObj(img1, img2,originalWidth, region)
+def get_feature_number_by_image(img1,img2, original=None, region=None):
+    findElementObj=ou.FindObj(img1, img2,original, region)
     return (findElementObj.findFeatureNumByBrisk())
 
-def _get_element_middle_point(driver, img, originalWidth, region):
+def _get_element_middle_point(driver, img, original, region):
     i=img.find('.')
     j=img.rfind('/')
     if(j>=0):#picture path is not null
@@ -85,8 +78,8 @@ def _get_element_middle_point(driver, img, originalWidth, region):
     print('**')
     print(img)
     print(screenShotFileName)
-    print(originalWidth)
+    print(original)
     print('**')
-    findElementObj=ou.FindObj(img, screenShotFileName, originalWidth, region)
+    findElementObj=ou.FindObj(img, screenShotFileName, original, region)
     tapPoint=findElementObj.findMiddlePointByBrisk()
     return tapPoint
