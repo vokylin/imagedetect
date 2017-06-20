@@ -14,15 +14,17 @@ class FindObj:
     _zoom_region=1.0#缩放比率
 
     def __init__(self, targetImg, regionImg, original,region):
+        #get_feature_number_by_image方法没有original，要判断original
         self._region=region
         self._original = original
         self._targetImg = cv2.imread(targetImg, 0)
         self._regionImg = cv2.imread(regionImg, 0)
         tempH, tempW=self._regionImg.shape[:2]#缩放前的被搜索图片
-        self._zoom_region=float(self._original[0])/float(tempW)#获得缩放比率
+        if original:
+            self._zoom_region=float(self._original[0])/float(tempW)#获得缩放比率
 
         #检查是否横屏，对屏幕进行旋转
-        if (self._original[0]<self._original[1]) ^ (tempW<tempH):
+        if (original and ((self._original[0]<self._original[1]) ^ (tempW<tempH)):
             self._regionImg = self.rotate_about_center(self._regionImg,90)
 
         if self._zoom_region != 1:
