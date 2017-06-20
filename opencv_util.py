@@ -14,18 +14,22 @@ class FindObj:
     _zoom_region=1.0#缩放比率
 
     def __init__(self, targetImg, regionImg, original,region):
-        #get_feature_number_by_image方法没有original，要判断original
         self._region=region
         self._original = original
         self._targetImg = cv2.imread(targetImg, 0)
         self._regionImg = cv2.imread(regionImg, 0)
         tempH, tempW=self._regionImg.shape[:2]#缩放前的被搜索图片
-        if original:
-            self._zoom_region=float(self._original[0])/float(tempW)#获得缩放比率
+
 
         #检查是否横屏，对屏幕进行旋转
-        if (original and ((self._original[0]<self._original[1]) ^ (tempW<tempH)):
+        if (original and (self._original[0]<self._original[1]) ^ (tempW<tempH)):
             self._regionImg = self.rotate_about_center(self._regionImg,90)
+            tempChange = tempH
+            tempH = tempW
+            tempW = tempChange
+
+        if original:
+            self._zoom_region=float(self._original[0])/float(tempW)#获得缩放比率
 
         if self._zoom_region != 1:
             #如果和原图不一致
@@ -45,7 +49,7 @@ class FindObj:
             self._regionImg=self._regionImg[self._region.y():(self._region.height()+self._region.y()), self._region.x():(self._region.width()+self._region.x())];
             #按照比例，截取后的图片  cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',self._regionImg)
 
-    def rotate_about_center(src, angle, scale=1.0):
+    def rotate_about_center(self,src, angle, scale=1.0):
         #中心旋转
         w = src.shape[1]
         h = src.shape[0]
@@ -74,10 +78,15 @@ class FindObj:
         detector = cv2.BRISK_create()
         [regionX,regionY],status,max_val = self._findMiddlePoint(detector)
         #返回中心点坐标。但是图片存在缩放的可能,需要self._zoom_region来修正
+        print(regionX)
+        print(regionY)
+
         if(self._region is not None and regionX is not None and regionY is not None):
             return [float(regionX + self._region.x())/self._zoom_region, float(regionY + self._region.y())/self._zoom_region,status,max_val];
-        else:
+        elif (regionX is not None and regionY is not None):
             return [float(regionX)/self._zoom_region,float(regionY)/self._zoom_region,status,max_val]
+        else:
+            return [regionX,regionY,status,max_val]
 
     def findMiddlePointByOrb(self):
         detector = cv2.ORB_create(400)
@@ -155,10 +164,10 @@ class FindObj:
                         y_top=0
                     if y_bottom > h2:
                         y_bottom = h2
-                    searchRange=regionImgZoomed[y_top:y_bottom, x_left:x_right];
+                    searchRange=self._regionImg[y_top:y_bottom, x_left:x_right];
 #                        cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',self._regionImg)
 
-                    if self.zoom_region>1:
+                    if self._zoom_region>1:
                         #如果运行时候的图片是经过放大，则需要进行锐化操作
                         #锐化
                         sharpenedSR=np.zeros(searchRange.shape, np.uint8)
