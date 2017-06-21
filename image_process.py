@@ -4,7 +4,7 @@ import numpy as np
 import time
 from appium.webdriver.common.touch_action import TouchAction
 ratio = 0.75
-rate = 0.1
+rate = 0.15
 def region(x, y, width, height):#像素点区域
     return ou.region(x, y, width, height)
 
