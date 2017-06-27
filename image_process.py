@@ -38,9 +38,9 @@ def is_element_present_by_image(driver, img,reference ,original=None, region=Non
     status = tapPoint[2]
     max_val = tapPoint[3]
     if max_val and np.sum(status) and len(status):
-        print('max_val:%f'%(max_val))
-        print(np.sum(status))
-        print(len(status))
+        #print('max_val:%f'%(max_val))
+        #print(np.sum(status))
+        #print(len(status))
     if(tapPoint[0] is not None and tapPoint[1] is not None):
         if(max_val<ratio):
             target = 1-float(abs(reference[0]-np.sum(status)))/float(reference[0])
@@ -75,11 +75,11 @@ def _get_element_middle_point(driver, img, original, region):
     else:#picture path is null
         screenShotFileName=str(time.time())+'-'+img[0:i]+'.png'
     driver.get_screenshot_as_file(screenShotFileName)
-    print('**')
-    print(img)
-    print(screenShotFileName)
-    print(original)
-    print('**')
+    #print('**')
+    #print(img)
+    #print(screenShotFileName)
+    #print(original)
+    #print('**')
     findElementObj=ou.FindObj(img, screenShotFileName, original, region)
     tapPoint=findElementObj.findMiddlePointByBrisk()
     return tapPoint

@@ -44,8 +44,8 @@ class FindObj:
                 self._region.setY(0)
                 self._region.setWidth(tempW)
             #检查区域是否有意义，如果没有则默认为全屏
-            print('截取后的坐标')
-            print(self._region.y(),(self._region.height()+self._region.y()), self._region.x(),(self._region.width()+self._region.x()))
+            #print('截取后的坐标')
+            #print(self._region.y(),(self._region.height()+self._region.y()), self._region.x(),(self._region.width()+self._region.x()))
             self._regionImg=self._regionImg[self._region.y():(self._region.height()+self._region.y()), self._region.x():(self._region.width()+self._region.x())];
             #按照比例，截取后的图片  cv2.imwrite('/usr/lib/python2.7/site-packages/shot.png',self._regionImg)
 
@@ -78,8 +78,8 @@ class FindObj:
         detector = cv2.BRISK_create()
         [regionX,regionY],status,max_val = self._findMiddlePoint(detector)
         #返回中心点坐标。但是图片存在缩放的可能,需要self._zoom_region来修正
-        print(regionX)
-        print(regionY)
+        #print(regionX)
+        #print(regionY)
 
         if(self._region is not None and regionX is not None and regionY is not None):
             return [float(regionX + self._region.x())/self._zoom_region, float(regionY + self._region.y())/self._zoom_region,status,max_val];
@@ -115,9 +115,9 @@ class FindObj:
     def _findMiddlePoint(self,detector):
         if self._targetImg is None or self._regionImg is None:
             #是否存在相应的图片
-            print('in fall wrong target Img or retionImg')
-            print(self._targetImg)
-            print(self._regionImg)
+            #print('in fall wrong target Img or retionImg')
+            #print(self._targetImg)
+            #print(self._regionImg)
             return [None,None],None,None
         matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
         kp1, desc1 = detector.detectAndCompute(self._targetImg, None)
@@ -143,14 +143,14 @@ class FindObj:
                     #剪切出模板匹配的目标范围图像searchRange
 
                     #regionImgZoomed=cv2.resize(self._regionImg,(int(w2*self._zoom_region),int(h2*self._zoom_region)),cv2.INTER_CUBIC)
-                    print('@@ hw @@&')
-                    print(h1)
-                    print(w1)
-                    print(h2)
-                    print(w2)
-                    print(self._zoom_region)
-                    print(middlePoint)
-                    print('&@@@@')
+                    #print('@@ hw @@&')
+                    #print(h1)
+                    #print(w1)
+                    #print(h2)
+                    #print(w2)
+                    #print(self._zoom_region)
+                    #print(middlePoint)
+                    #print('&@@@@')
                     x_left=middlePoint[0]-w1
                     x_right=middlePoint[0]+w1
                     y_top=middlePoint[1]-h1
@@ -187,35 +187,35 @@ class FindObj:
 
                     #top_left = max_loc
                     #bottom_right = (top_left[0] + w1, top_left[1] + h1)
-                    print('&& lrtb &&')
-                    print(middlePoint)
-                    print(x_left)
-                    print(x_right)
-                    print(y_top)
-                    print(y_bottom)
-                    print(max_val)
-                    print('&&&&')
+                    #print('&& lrtb &&')
+                    #print(middlePoint)
+                    #print(x_left)
+                    #print(x_right)
+                    #print(y_top)
+                    #print(y_bottom)
+                    #print(max_val)
+                    #print('&&&&')
                     if max_val > self._ratio:
                         #大于相似度，返回中心点以及各参数
                         return middlePoint,status,max_val
                     else:
                         #小于相似度
-                        print('in fall max_val')
+                        #print('in fall max_val')
                         return middlePoint,status,max_val
                 else:
                     #没有中心点，则只能检测是否存在（比较弱的检测，准确度需要控制，通过特征点的多少），无法进行点击
-                    print('in fall no_middle')
-                    print(middlePoint)
-                    print(status)
+                    #print('in fall no_middle')
+                    #print(middlePoint)
+                    #print(status)
                     return [None,None],status,None
             else:
-                print('in fall no_Orignal')
+                #print('in fall no_Orignal')
                 return [None,None],None,None
         else:
             #特征点数不够
             H, status = None, None
             #if we cannot get the middle point, so long as there is one matched point,return it as middle point
-            print('in fall tezheng < 4')
+            #print('in fall tezheng < 4')
             return [None,None],None,None
 
     def _filter_matches(self, kp1, kp2, matches):
