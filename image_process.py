@@ -37,7 +37,7 @@ def is_element_present_by_image(driver, img,reference ,original=None, region=Non
     tapPoint=_get_element_middle_point(driver, img,original, region)
     status = tapPoint[2]
     max_val = tapPoint[3]
-    if max_val and np.sum(status) and len(status):
+    #if max_val and np.sum(status) and len(status):
         #print('max_val:%f'%(max_val))
         #print(np.sum(status))
         #print(len(status))
