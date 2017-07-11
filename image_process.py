@@ -4,7 +4,7 @@ import numpy as np
 import time
 from appium.webdriver.common.touch_action import TouchAction
 ratio = 0.75
-rate = 0.15
+rate = 1.0
 def region(x, y, width, height):#像素点区域
     return ou.region(x, y, width, height)
 
@@ -13,7 +13,8 @@ def regionP(driver,x, y, width, height):#百分比区域
     sHeight=driver.get_window_size()['height'];
     return ou.region(x*sWidth, y*sHeight, width*sWidth, height*sHeight)
 
-def tap_element_by_image(driver, img,reference ,original=None, region=None):
+def tap_element_by_image(driver, img,reference ,usr_rate,original=None, region=None):
+    rate = usr_rate
     tapPoint=_get_element_middle_point(driver, img, original,region)
     status = tapPoint[2]
     max_val = tapPoint[3]#max_val 模板匹配相似值
@@ -33,7 +34,8 @@ def tap_element_by_image(driver, img,reference ,original=None, region=None):
         #如果没有中心点。无论如何不允许点击
         return False;
 
-def is_element_present_by_image(driver, img,reference ,original=None, region=None):
+def is_element_present_by_image(driver, img,reference ,usr_rate,original=None, region=None):
+    rate = usr_rate
     tapPoint=_get_element_middle_point(driver, img,original, region)
     status = tapPoint[2]
     max_val = tapPoint[3]
